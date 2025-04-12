@@ -1,6 +1,16 @@
 import { Players, Workspace, ReplicatedStorage, RunService } from "@rbxts/services";
 import { getRandomMagicalColor } from "../shared/colors";
 
+// Create SpawnPoint for food
+const spawnPoint = new Instance("Part");
+spawnPoint.Name = "SpawnPoint";
+spawnPoint.Size = new Vector3(1, 1, 1);
+spawnPoint.Position = new Vector3(0, 5, 0); // Adjust this position as needed
+spawnPoint.Anchored = true;
+spawnPoint.Transparency = 1; // Make it invisible
+spawnPoint.CanCollide = false;
+spawnPoint.Parent = Workspace;
+
 // Create a RemoteEvent for feeding pets
 const feedEvent = new Instance("RemoteEvent");
 feedEvent.Name = "FeedPet";

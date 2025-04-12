@@ -30,6 +30,9 @@
 				"$className": "StarterPlayerScripts",
 				"TS": {
 					"$path": "out/client"
+				},
+				"Minimap": {
+					"$path": "out/client/minimap.client.luau"
 				}
 			}
 		},
