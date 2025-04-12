@@ -1,155 +1,15 @@
 import { Players, Workspace, ReplicatedStorage, RunService } from "@rbxts/services";
 import { getRandomMagicalColor } from "../shared/colors";
 
-// On crée un RemoteEvent à la racine
+// Create a RemoteEvent for feeding pets
 const feedEvent = new Instance("RemoteEvent");
 feedEvent.Name = "FeedPet";
 feedEvent.Parent = ReplicatedStorage;
 
-feedEvent.OnServerEvent.Connect((player) => {
-	print(`${player.Name} a nourri son pet 🥰`);
-});
-
-Players.PlayerAdded.Connect((player) => {
-	player.CharacterAdded.Connect((character) => {
-		const hrp = character.WaitForChild("HumanoidRootPart") as Part;
-
-		// Créer un modèle de BabyDragon en clonant un modèle existant dans ReplicatedStorage
-		const babyDragon = ReplicatedStorage.WaitForChild("BabyDragon").Clone() as Model;
-		babyDragon.Parent = Workspace;
-
-		// Set PrimaryPart if not already set
-		if (!babyDragon.PrimaryPart) {
-			babyDragon.PrimaryPart = babyDragon.FindFirstChild("Body") as BasePart;
-		}
-
-		// Positionner le BabyDragon près du joueur
-		babyDragon.SetPrimaryPartCFrame(hrp.CFrame.add(new Vector3(3, 3, 0)));
-
-		// Ajout d'une logique pour le faire suivre le joueur
-		const bp = new Instance("BodyPosition");
-		bp.MaxForce = new Vector3(10000, 10000, 10000);
-		bp.D = 100;
-		bp.P = 1000;
-		bp.Position = babyDragon.PrimaryPart.Position;
-		bp.Parent = babyDragon.PrimaryPart;
-
-		task.spawn(() => {
-			while (character.Parent !== undefined && babyDragon.Parent !== undefined) {
-				bp.Position = hrp.Position.add(new Vector3(3, 3, 0)); // Suivre le joueur
-				task.wait(0.05);
-			}
-		});
-
-		print(`${player.Name} a obtenu un Baby Dragon !`);
-	});
-
-	// Create a basic pet (we'll make it more magical later)
-	const pet = new Instance("Part");
-	pet.Name = "Pet";
-	pet.Size = new Vector3(1, 1, 1);
-	pet.BrickColor = new BrickColor("Really red"); // Starting with a red cube as mentioned in concept
-	pet.Anchored = false;
-	pet.Parent = player.Character;
-
-	// Make the pet follow the player
-	RunService.Heartbeat.Connect(() => {
-		if (player.Character?.PrimaryPart) {
-			const targetPosition = player.Character.PrimaryPart.Position.add(
-				new Vector3(0, 2, -3), // Position behind and above the player
-			);
-			pet.Position = pet.Position.Lerp(targetPosition, 0.1);
-		}
-	});
-});
-
-Players.PlayerRemoving.Connect((player) => {
-	// Clean up the pet when player leaves
-	if (player.Character) {
-		const pet = player.Character.FindFirstChild("Pet");
-		if (pet) {
-			pet.Destroy();
-		}
-	}
-});
-
-Players.PlayerAdded.Connect((player) => {
-	player.CharacterAdded.Connect((character) => {
-		const hrp = character.WaitForChild("HumanoidRootPart") as Part;
-
-		// Crée un modèle pour le pet
-		const petModel = new Instance("Model");
-		petModel.Name = "Pet";
-
-		// Partie du corps
-		const body = new Instance("Part");
-		body.Name = "Body";
-		body.Size = new Vector3(2, 2, 2);
-		body.Position = hrp.Position.add(new Vector3(3, 3, 0));
-		body.Anchored = false;
-		body.BrickColor = new BrickColor("Bright red");
-		body.CanCollide = false;
-		body.Parent = petModel;
-
-		// Partie de la tête
-		const head = new Instance("Part");
-		head.Name = "Head";
-		head.Size = new Vector3(1.5, 1.5, 1.5);
-		head.Position = body.Position.add(new Vector3(0, 2, 0));
-		head.Anchored = false;
-		head.BrickColor = new BrickColor("Bright blue");
-		head.CanCollide = false;
-		head.Parent = petModel;
-
-		// Ajout d'un BodyPosition pour faire suivre le pet
-		const bp = new Instance("BodyPosition");
-		bp.MaxForce = new Vector3(10000, 10000, 10000);
-		bp.D = 100;
-		bp.P = 1000;
-		bp.Position = body.Position;
-		bp.Parent = body;
-
-		petModel.PrimaryPart = body;
-		petModel.Parent = Workspace;
-
-		// Suivre le joueur
-		task.spawn(() => {
-			while (character.Parent !== undefined && petModel.Parent !== undefined) {
-				bp.Position = hrp.Position.add(new Vector3(3, 3, 0));
-				task.wait(0.05);
-			}
-		});
-
-		// Variable de faim
-		let hunger = 100; // Le pet commence avec 100% de faim
-
-		// Réduire la faim au fil du temps (ex : 1% par 10 secondes)
-		task.spawn(() => {
-			while (petModel.Parent !== undefined) {
-				task.wait(10);
-				hunger = math.max(0, hunger - 1); // La faim ne peut pas devenir négative
-				print(`Faim du pet : ${hunger}%`);
-			}
-		});
-
-		// Nourrir le pet
-		const feedEvent = ReplicatedStorage.WaitForChild("FeedPet") as RemoteEvent;
-		feedEvent.OnServerEvent.Connect(() => {
-			if (hunger < 100) {
-				hunger = math.min(100, hunger + 10); // Nourrir augmente la faim de 10%
-				print(`Le pet a été nourri, faim : ${hunger}%`);
-			}
-			// Evolution du pet après avoir atteint une faim de 100%
-			else if (hunger === 100) {
-				body.Size = new Vector3(4, 4, 4); // Le corps devient plus grand
-				head.Size = new Vector3(2, 2, 2); // La tête devient plus grande
-				body.BrickColor = new BrickColor("Bright green"); // Le pet devient vert
-				head.BrickColor = new BrickColor("Bright yellow");
-				print("Le pet a évolué !");
-			}
-		});
-	});
-});
+// Create a RemoteEvent for food collection
+const foodCollectionEvent = new Instance("RemoteEvent");
+foodCollectionEvent.Name = "CollectFood";
+foodCollectionEvent.Parent = ReplicatedStorage;
 
 // Create a RemoteEvent for pet selection
 const petSelectionEvent = new Instance("RemoteEvent");
@@ -176,7 +36,17 @@ const petConfigs = {
 };
 
 // Store player data
-const playerData = new Map<Player, { pet?: Model }>();
+const playerData = new Map<Player, { pet?: Model; foodCount?: number }>();
+
+// Handle food collection
+foodCollectionEvent.OnServerEvent.Connect((player) => {
+	if (!playerData.has(player)) {
+		playerData.set(player, { foodCount: 0 });
+	}
+	const data = playerData.get(player)!;
+	data.foodCount = (data.foodCount || 0) + 1;
+	print(`${player.Name} collected a magical rainbow! Total: ${data.foodCount}`);
+});
 
 // Handle pet selection
 petSelectionEvent.OnServerEvent.Connect((player, ...args) => {
@@ -373,4 +243,117 @@ Players.PlayerRemoving.Connect((player) => {
 		data.pet.Destroy();
 	}
 	playerData.delete(player);
+});
+
+// Handle feeding
+feedEvent.OnServerEvent.Connect((player) => {
+	const data = playerData.get(player);
+	if (data?.pet && data.foodCount && data.foodCount > 0) {
+		data.foodCount -= 1;
+		print(`${player.Name} fed their pet! Food remaining: ${data.foodCount}`);
+
+		// Make the pet grow or change color when fed
+		const pet = data.pet;
+		const body = pet.FindFirstChild("Body") as Part;
+		if (body) {
+			// Make the pet slightly bigger
+			body.Size = body.Size.add(new Vector3(0.1, 0.1, 0.1));
+
+			// Change color to a new random magical color
+			body.BrickColor = getRandomMagicalColor();
+
+			// Update head color to match
+			const head = pet.FindFirstChild("Head") as Part;
+			if (head) {
+				head.BrickColor = body.BrickColor;
+			}
+		}
+	}
+});
+
+// Configuration for food spawning
+const FOOD_SPAWN_INTERVAL = 30; // Spawn new food every 30 seconds
+const MAX_FOOD_ITEMS = 10; // Maximum number of food items on the map
+const SPAWN_RADIUS = 50; // Radius around spawn point to place food
+
+// Store active food items
+const activeFoodItems = new Set<Model>();
+
+// Function to create a magical rainbow food item
+function createFoodItem(): Model {
+	const food = new Instance("Model");
+	food.Name = "MagicalRainbow";
+
+	// Create the main rainbow part
+	const rainbow = new Instance("Part");
+	rainbow.Name = "Rainbow";
+	rainbow.Size = new Vector3(1, 0.2, 1);
+	rainbow.Shape = Enum.PartType.Cylinder;
+	rainbow.Orientation = new Vector3(0, 0, 90);
+	rainbow.BrickColor = new BrickColor("Hot pink");
+	rainbow.Material = Enum.Material.Neon;
+	rainbow.CanCollide = false;
+	rainbow.Parent = food;
+
+	// Add rainbow particles
+	const particles = new Instance("ParticleEmitter");
+	particles.Name = "RainbowParticles";
+	particles.Color = new ColorSequence([
+		new ColorSequenceKeypoint(0, new Color3(1, 0, 0)), // Red
+		new ColorSequenceKeypoint(0.2, new Color3(1, 0.5, 0)), // Orange
+		new ColorSequenceKeypoint(0.4, new Color3(1, 1, 0)), // Yellow
+		new ColorSequenceKeypoint(0.6, new Color3(0, 1, 0)), // Green
+		new ColorSequenceKeypoint(0.8, new Color3(0, 0, 1)), // Blue
+		new ColorSequenceKeypoint(1, new Color3(0.5, 0, 0.5)), // Purple
+	]);
+	particles.Size = new NumberSequence([new NumberSequenceKeypoint(0, 0.5), new NumberSequenceKeypoint(1, 0)]);
+	particles.Rate = 50;
+	particles.Speed = new NumberRange(2, 4);
+	particles.Lifetime = new NumberRange(0.5, 1);
+	particles.Parent = rainbow;
+
+	// Add a touch detector
+	const touchDetector = new Instance("Part");
+	touchDetector.Name = "TouchDetector";
+	touchDetector.Size = new Vector3(2, 2, 2);
+	touchDetector.Transparency = 1;
+	touchDetector.CanCollide = false;
+	touchDetector.Parent = food;
+
+	// Add a touch connection
+	touchDetector.Touched.Connect((part) => {
+		const character = part.Parent;
+		if (character && character.IsA("Model") && character.FindFirstChild("Humanoid")) {
+			foodCollectionEvent.FireClient(character.Parent as Player);
+			food.Destroy();
+			activeFoodItems.delete(food);
+		}
+	});
+
+	return food;
+}
+
+// Function to spawn food at a random position
+function spawnFood() {
+	if (activeFoodItems.size() >= MAX_FOOD_ITEMS) return;
+
+	const food = createFoodItem();
+	const spawnPoint = Workspace.FindFirstChild("SpawnPoint");
+	if (spawnPoint?.IsA("BasePart")) {
+		const randomAngle = math.random() * math.pi * 2;
+		const randomRadius = math.random() * SPAWN_RADIUS;
+		const offset = new Vector3(math.cos(randomAngle) * randomRadius, 0, math.sin(randomAngle) * randomRadius);
+		food.PivotTo(spawnPoint.CFrame.add(offset));
+	}
+	food.Parent = Workspace;
+	activeFoodItems.add(food);
+}
+
+// Start spawning food
+task.spawn(() => {
+	const shouldContinue = true;
+	while (shouldContinue) {
+		spawnFood();
+		task.wait(FOOD_SPAWN_INTERVAL);
+	}
 });
